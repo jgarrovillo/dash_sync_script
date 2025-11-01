@@ -223,21 +223,49 @@ window.syncData = async function syncData(type) {
       return;
     }
     
-    console.log('✅ JIRA Bridge available, fetching issues...');
-    showAlert('info', 'Fetching issues from JIRA...');
+    console.log(`✅ JIRA Bridge available, fetching issues...`);
+    showAlert('info', 'Fetching field metadata from JIRA...');
+
+    // First, fetch all field definitions to get custom field names
+    console.log('📋 Fetching field metadata...');
+    let fieldNames = {};
     
+    try {
+      const fieldsData = await window.JiraBridge.fetch(
+        `https://${JIRA_CONFIG.domain}/rest/api/2/field`,
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          }
+        }
+      );
+      
+      if (fieldsData && Array.isArray(fieldsData)) {
+        fieldsData.forEach(field => {
+          if (field.id && field.name) {
+            fieldNames[field.id] = field.name;
+          }
+        });
+        console.log(`✅ Fetched ${Object.keys(fieldNames).length} field definitions`);
+        console.log('Sample fields:', Object.entries(fieldNames).slice(0, 5).map(([k,v]) => `${v}=${k}`).join(', '));
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not fetch field metadata:', error);
+    }
+
     // Build JQL query
     let jql = `project = ${JIRA_CONFIG.projectKey} ORDER BY created DESC`;
-    
+
     console.log(`📋 JQL Query: ${jql}`);
     console.log(`🌐 Fetching from: https://${JIRA_CONFIG.domain}/rest/api/2/search`);
-    
+    showAlert('info', 'Fetching issues from JIRA...');
+
     // Fetch ALL issues with pagination
     let allIssues = [];
     let startAt = 0;
     const maxResults = isDebug ? 10 : 100; // Fetch in batches of 100
     let totalIssues = 0;
-    let fieldNames = {};
     
     do {
       console.log(`🔄 Fetching batch starting at ${startAt}...`);
@@ -266,18 +294,10 @@ window.syncData = async function syncData(type) {
       );
       
       console.log(`📦 Batch received: ${data.issues ? data.issues.length : 0} issues`);
-      console.log(`📋 Field names in response:`, data.names ? Object.keys(data.names).length : 0);
       
       if (data.issues && data.issues.length > 0) {
         allIssues = allIssues.concat(data.issues);
         totalIssues = data.total;
-        
-        // Store field names from first batch
-        if (data.names && Object.keys(fieldNames).length === 0) {
-          fieldNames = data.names;
-          console.log(`✅ Stored ${Object.keys(fieldNames).length} field name mappings`);
-          console.log('Sample field names:', Object.entries(fieldNames).slice(0, 5).map(([k,v]) => `${v}=${k}`).join(', '));
-        }
         
         // Update progress
         showAlert('info', `Fetching issues: ${allIssues.length} / ${totalIssues}...`);
