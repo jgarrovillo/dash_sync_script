@@ -236,7 +236,7 @@ window.syncData = async function syncData(type) {
     
     // Fetch issues using the bridge
     console.log('🔄 Calling JiraBridge.fetch...');
-    const response = await window.JiraBridge.fetch(
+    const data = await window.JiraBridge.fetch(
       `https://${JIRA_CONFIG.domain}/rest/api/2/search`,
       {
         method: 'POST',
@@ -252,13 +252,8 @@ window.syncData = async function syncData(type) {
     );
     
     console.log('📦 JIRA API Response received');
-    
-    if (!response.ok) {
-      throw new Error(`JIRA API error: ${response.status} ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    console.log(`✅ Fetched ${data.issues.length} issues from JIRA`);
+    console.log('📊 Data:', data);
+    console.log(`✅ Fetched ${data.issues ? data.issues.length : 0} issues from JIRA`);
     
     if (data.issues.length === 0) {
       hideLoading();
@@ -278,17 +273,19 @@ window.syncData = async function syncData(type) {
     showAlert('info', `Processing ${data.issues.length} issues...`);
     
     // Send to backend
+    console.log('📤 Calling storeJiraDataFromBrowser with', data.issues.length, 'issues');
     google.script.run
       .withSuccessHandler(function(result) {
         hideLoading();
         console.log('✅ Sync completed:', result);
         
-        if (result.success) {
+        if (result && result.success) {
           showAlert('success', `✅ ${result.message}`);
+          console.log(`📊 Stats: ${result.inserted} inserted, ${result.updated} updated`);
           // Reload dashboard to show new data
           setTimeout(() => loadDashboard(), 1000);
         } else {
-          showAlert('danger', `❌ Sync failed: ${result.message}`);
+          showAlert('danger', `❌ Sync failed: ${result ? result.message : 'Unknown error'}`);
         }
       })
       .withFailureHandler(function(error) {
