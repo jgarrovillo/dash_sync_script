@@ -667,6 +667,8 @@ window.syncData = async function syncData(type) {
         allIssues = allIssues.concat(data.issues);
         totalIssues = data.total;
         
+        console.log(`📊 Progress: ${allIssues.length} / ${totalIssues} issues fetched`);
+        
         // Update progress
         showAlert('info', `Fetching issues: ${allIssues.length} / ${totalIssues}...`);
       }
@@ -680,7 +682,14 @@ window.syncData = async function syncData(type) {
       }
       
       // For debug mode, only fetch one batch
-      if (isDebug) break;
+      if (isDebug) {
+        console.log('🐛 Debug mode: stopping after first batch');
+        break;
+      }
+      
+      // Check if we need to continue
+      const shouldContinue = allIssues.length < totalIssues;
+      console.log(`🔄 Should continue? ${shouldContinue} (${allIssues.length} < ${totalIssues})`);
       
     } while (allIssues.length < totalIssues);
     
