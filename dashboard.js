@@ -219,47 +219,40 @@ window.syncData = async function syncData(type) {
     
     if (!isBridgeAvailable()) {
       hideLoading();
-      showAlert('danger', 'JIRA Bridge extension not detected. Please install the Chrome extension and refresh the page.');
-      console.error('❌ JIRA Bridge not available');
+      showAlert('danger', 'JIRA Bridge extension not detected. Please install the extension and refresh.');
       return;
     }
     
     console.log('✅ JIRA Bridge available, fetching issues...');
     showAlert('info', 'Fetching issues from JIRA...');
     
-    // Build JQL query based on sync type
+    // Build JQL query
     let jql = `project = ${JIRA_CONFIG.projectKey} ORDER BY created DESC`;
     let maxResults = isDebug ? 10 : 1000;
-    
-    if (type === 'delta') {
-      // Get last sync date from Apps Script
-      const lastSync = await new Promise((resolve, reject) => {
-        google.script.run
-          .withSuccessHandler(resolve)
-          .withFailureHandler(reject)
-          .getLastSyncDate();
-      });
-      
-      if (lastSync) {
-        const lastSyncDate = new Date(lastSync);
-        const jiraDate = lastSyncDate.toISOString().split('T')[0].replace(/-/g, '/');
-        jql = `project = ${JIRA_CONFIG.projectKey} AND updated >= "${jiraDate}" ORDER BY updated DESC`;
-        console.log(`📅 Delta sync from: ${jiraDate}`);
-      }
-    }
     
     console.log(`📋 JQL Query: ${jql}`);
     console.log(`📊 Max Results: ${maxResults}`);
     
     // Fetch issues using the bridge
     const response = await window.JiraBridge.fetch(
-      `https://${JIRA_CONFIG.domain}/rest/api/2/search?jql=${encodeURIComponent(jql)}&maxResults=${maxResults}&fields=*all`
+      `https://${JIRA_CONFIG.domain}/rest/api/2/search`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          jql: jql,
+          maxResults: maxResults,
+          fields: ['summary', 'issuetype', 'status', 'created', 'updated', 'customfield_*']
+        })
+      }
     );
     
-    console.log('📦 JIRA Response received:', response);
+    console.log('📦 JIRA API Response received');
     
     if (!response.ok) {
-      throw new Error(`JIRA API returned ${response.status}: ${response.statusText}`);
+      throw new Error(`JIRA API error: ${response.status} ${response.statusText}`);
     }
     
     const data = await response.json();
@@ -271,32 +264,22 @@ window.syncData = async function syncData(type) {
       return;
     }
     
+    // Get field names for custom fields
+    const fieldNames = {};
+    if (data.names) {
+      Object.keys(data.names).forEach(key => {
+        fieldNames[key] = data.names[key];
+      });
+    }
+    
+    console.log('💾 Sending data to Google Sheets...');
     showAlert('info', `Processing ${data.issues.length} issues...`);
     
-    // Get field names for custom fields
-    const fieldsResponse = await window.JiraBridge.fetch(
-      `https://${JIRA_CONFIG.domain}/rest/api/2/field`
-    );
-    const fields = await fieldsResponse.json();
-    
-    // Create field name mapping
-    const fieldNames = {};
-    fields.forEach(field => {
-      if (field.custom) {
-        fieldNames[field.id] = field.name;
-      }
-    });
-    
-    console.log('📋 Custom field names:', fieldNames);
-    
-    // Send data to Apps Script for storage
-    console.log('💾 Sending data to Apps Script...');
-    showAlert('info', 'Saving data to spreadsheet...');
-    
+    // Send to backend
     google.script.run
       .withSuccessHandler(function(result) {
         hideLoading();
-        console.log('✅ Sync complete:', result);
+        console.log('✅ Sync completed:', result);
         
         if (result.success) {
           showAlert('success', `✅ ${result.message}`);
@@ -308,15 +291,15 @@ window.syncData = async function syncData(type) {
       })
       .withFailureHandler(function(error) {
         hideLoading();
-        console.error('❌ Apps Script error:', error);
-        showAlert('danger', `Failed to save data: ${error.message}`);
+        console.error('❌ Backend error:', error);
+        showAlert('danger', `❌ Failed to save data: ${error.message}`);
       })
       .storeJiraDataFromBrowser(data.issues, fieldNames);
     
   } catch (error) {
     hideLoading();
     console.error('❌ Sync error:', error);
-    showAlert('danger', `Sync failed: ${error.message}`);
+    showAlert('danger', `❌ Sync failed: ${error.message}`);
   }
 };
 
