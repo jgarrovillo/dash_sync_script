@@ -260,7 +260,7 @@ window.syncData = async function syncData(type) {
               // Request all custom fields explicitly
               'customfield_*'
             ],
-            expand: 'names'
+            expand: ['names']
           })
         }
       );
