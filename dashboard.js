@@ -125,6 +125,16 @@ function renderDashboard(data) {
   // Update last sync
   document.getElementById('lastSync').textContent = `Last sync: ${data.lastSync || 'Never'}`;
   
+  // Update summary cards
+  if (data.summary) {
+    document.getElementById('totalTickets').textContent = data.summary.total || 0;
+    document.getElementById('todayCount').textContent = data.summary.byPeriod?.today || 0;
+    document.getElementById('weekCount').textContent = data.summary.byPeriod?.thisWeek || 0;
+    document.getElementById('monthCount').textContent = data.summary.byPeriod?.thisMonth || 0;
+    document.getElementById('yearCount').textContent = data.summary.byPeriod?.thisYear || 0;
+    document.getElementById('prevYearsCount').textContent = data.summary.byPeriod?.previousYears || 0;
+  }
+  
   // Render charts and tables
   if (data.summary) {
     renderPeriodChart(data.summary.byPeriod);
@@ -138,24 +148,383 @@ function renderDashboard(data) {
   }
 }
 
-// Chart rendering functions would go here...
-// (Simplified for now - you can add the full chart logic)
+// Chart color schemes
+const CHART_COLORS = {
+  primary: '#1f6feb',
+  success: '#2ea043',
+  warning: '#d29922',
+  danger: '#da3633',
+  purple: '#8b5cf6',
+  info: '#58a6ff',
+  teal: '#39d0d8',
+  orange: '#f0883e'
+};
 
+const CHART_DEFAULTS = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      labels: {
+        color: '#e6edf3',
+        font: { size: 12 }
+      }
+    }
+  }
+};
+
+/**
+ * Chart 1: Period Bar Chart
+ * Shows tickets created by time period (Today, This Week, This Month, This Year, Previous Years)
+ */
 function renderPeriodChart(periodData) {
   console.log('Rendering period chart:', periodData);
-  // Chart rendering logic
+  
+  const ctx = document.getElementById('periodChart');
+  if (!ctx) {
+    console.error('Period chart canvas not found');
+    return;
+  }
+  
+  // Destroy existing chart if it exists
+  if (charts.periodChart) {
+    charts.periodChart.destroy();
+  }
+  
+  const labels = ['Today', 'This Week', 'This Month', 'This Year', 'Previous Years'];
+  const dataValues = [
+    periodData?.today || 0,
+    periodData?.thisWeek || 0,
+    periodData?.thisMonth || 0,
+    periodData?.thisYear || 0,
+    periodData?.previousYears || 0
+  ];
+  
+  const backgroundColors = [
+    CHART_COLORS.success,
+    CHART_COLORS.warning,
+    CHART_COLORS.purple,
+    CHART_COLORS.primary,
+    CHART_COLORS.info
+  ];
+  
+  charts.periodChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Tickets Created',
+        data: dataValues,
+        backgroundColor: backgroundColors,
+        borderColor: backgroundColors.map(c => c),
+        borderWidth: 1
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: '#7d8590',
+            stepSize: 1
+          },
+          grid: {
+            color: '#30363d'
+          }
+        },
+        x: {
+          ticks: {
+            color: '#7d8590'
+          },
+          grid: {
+            color: '#30363d'
+          }
+        }
+      },
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: '#161b22',
+          titleColor: '#e6edf3',
+          bodyColor: '#e6edf3',
+          borderColor: '#30363d',
+          borderWidth: 1
+        }
+      }
+    }
+  });
 }
 
+/**
+ * Chart 2: Environment Chart (Bar/Pie)
+ * Shows distribution of environments for Setup Request issues
+ */
 function renderEnvironmentChart(envData) {
   console.log('Rendering environment chart:', envData);
+  
+  const ctx = document.getElementById('environmentChart');
+  if (!ctx) {
+    console.error('Environment chart canvas not found');
+    return;
+  }
+  
+  // Destroy existing chart if it exists
+  if (charts.environmentChart) {
+    charts.environmentChart.destroy();
+  }
+  
+  if (!envData || Object.keys(envData).length === 0) {
+    console.log('No environment data available');
+    return;
+  }
+  
+  const labels = Object.keys(envData);
+  const dataValues = Object.values(envData);
+  
+  // Generate colors for each environment
+  const colors = generateColors(labels.length);
+  
+  // Use pie chart for better visualization of distribution
+  charts.environmentChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: dataValues,
+        backgroundColor: colors,
+        borderColor: '#161b22',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        legend: {
+          position: 'right',
+          labels: {
+            color: '#e6edf3',
+            font: { size: 11 },
+            padding: 10
+          }
+        },
+        tooltip: {
+          backgroundColor: '#161b22',
+          titleColor: '#e6edf3',
+          bodyColor: '#e6edf3',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          callbacks: {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.parsed || 0;
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((value / total) * 100).toFixed(1);
+              return `${label}: ${value} (${percentage}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
 }
 
+/**
+ * Chart 3: Compliance Jurisdiction Chart (Bar/Pie)
+ * Shows distribution of compliance jurisdictions for Setup Request issues
+ */
 function renderJurisdictionChart(jurData) {
   console.log('Rendering jurisdiction chart:', jurData);
+  
+  const ctx = document.getElementById('jurisdictionChart');
+  if (!ctx) {
+    console.error('Jurisdiction chart canvas not found');
+    return;
+  }
+  
+  // Destroy existing chart if it exists
+  if (charts.jurisdictionChart) {
+    charts.jurisdictionChart.destroy();
+  }
+  
+  if (!jurData || Object.keys(jurData).length === 0) {
+    console.log('No jurisdiction data available');
+    return;
+  }
+  
+  const labels = Object.keys(jurData);
+  const dataValues = Object.values(jurData);
+  
+  // Generate colors for each jurisdiction
+  const colors = generateColors(labels.length);
+  
+  // Use pie chart for better visualization
+  charts.jurisdictionChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: dataValues,
+        backgroundColor: colors,
+        borderColor: '#161b22',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        legend: {
+          position: 'right',
+          labels: {
+            color: '#e6edf3',
+            font: { size: 11 },
+            padding: 10
+          }
+        },
+        tooltip: {
+          backgroundColor: '#161b22',
+          titleColor: '#e6edf3',
+          bodyColor: '#e6edf3',
+          borderColor: '#30363d',
+          borderWidth: 1,
+          callbacks: {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.parsed || 0;
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((value / total) * 100).toFixed(1);
+              return `${label}: ${value} (${percentage}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
 }
 
+/**
+ * Chart 4: Template Chart (Bar/Pie)
+ * Shows distribution of templates (ISR - NLC Setup, ISR - Evo OSS Setup) for Setup Request issues
+ */
 function renderTemplateChart(templateData) {
   console.log('Rendering template chart:', templateData);
+  
+  const ctx = document.getElementById('templateChart');
+  if (!ctx) {
+    console.error('Template chart canvas not found');
+    return;
+  }
+  
+  // Destroy existing chart if it exists
+  if (charts.templateChart) {
+    charts.templateChart.destroy();
+  }
+  
+  if (!templateData || Object.keys(templateData).length === 0) {
+    console.log('No template data available');
+    return;
+  }
+  
+  const labels = Object.keys(templateData);
+  const dataValues = Object.values(templateData);
+  
+  // Use specific colors for templates
+  const colors = [
+    CHART_COLORS.primary,
+    CHART_COLORS.success,
+    CHART_COLORS.warning,
+    CHART_COLORS.purple,
+    CHART_COLORS.info
+  ].slice(0, labels.length);
+  
+  // Use bar chart for template comparison
+  charts.templateChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Setup Requests',
+        data: dataValues,
+        backgroundColor: colors,
+        borderColor: colors,
+        borderWidth: 1
+      }]
+    },
+    options: {
+      ...CHART_DEFAULTS,
+      indexAxis: 'y', // Horizontal bar chart for better label readability
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: {
+            color: '#7d8590',
+            stepSize: 1
+          },
+          grid: {
+            color: '#30363d'
+          }
+        },
+        y: {
+          ticks: {
+            color: '#7d8590',
+            font: { size: 10 }
+          },
+          grid: {
+            color: '#30363d'
+          }
+        }
+      },
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: '#161b22',
+          titleColor: '#e6edf3',
+          bodyColor: '#e6edf3',
+          borderColor: '#30363d',
+          borderWidth: 1
+        }
+      }
+    }
+  });
+}
+
+/**
+ * Helper function to generate distinct colors for charts
+ */
+function generateColors(count) {
+  const baseColors = [
+    CHART_COLORS.primary,
+    CHART_COLORS.success,
+    CHART_COLORS.warning,
+    CHART_COLORS.purple,
+    CHART_COLORS.info,
+    CHART_COLORS.teal,
+    CHART_COLORS.orange,
+    CHART_COLORS.danger
+  ];
+  
+  // If we need more colors than base colors, generate variations
+  if (count <= baseColors.length) {
+    return baseColors.slice(0, count);
+  }
+  
+  const colors = [...baseColors];
+  const hueStep = 360 / count;
+  
+  for (let i = baseColors.length; i < count; i++) {
+    const hue = (i * hueStep) % 360;
+    colors.push(`hsl(${hue}, 70%, 60%)`);
+  }
+  
+  return colors;
 }
 
 function renderTicketsTable(tickets) {
@@ -175,9 +544,9 @@ function renderTicketsTable(tickets) {
       <td><span class="badge bg-info">${escapeHtml(ticket.issueType)}</span></td>
       <td><span class="badge bg-success">${escapeHtml(ticket.status)}</span></td>
       <td><small>${escapeHtml(ticket.createdDate)}</small></td>
-      <td><small>${escapeHtml(ticket.environments)}</small></td>
-      <td><small>${escapeHtml(ticket.jurisdiction)}</small></td>
-      <td><small>${escapeHtml(ticket.template)}</small></td>
+      <td><small>${escapeHtml(ticket.environments || '')}</small></td>
+      <td><small>${escapeHtml(ticket.complianceJurisdiction || '')}</small></td>
+      <td><small>${escapeHtml(ticket.template || '')}</small></td>
     </tr>`;
   }).join('');
   
