@@ -757,14 +757,8 @@ window.syncData = async function syncData(type) {
           body: JSON.stringify({
             jql: jql,
             startAt: startAt,
-            maxResults: maxResults,
-            fields: [
-              // Standard fields
-              'summary', 'issuetype', 'status', 'project', 'resolution',
-              'assignee', 'reporter', 'creator', 'created', 'updated', 'resolutiondate',
-              // Request all custom fields explicitly
-              'customfield_*'
-            ]
+            maxResults: maxResults
+            // Don't specify fields parameter - this will return ALL fields including custom fields
           })
         }
       );
