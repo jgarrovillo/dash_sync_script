@@ -205,7 +205,7 @@ window.syncData = async function syncData(type) {
   const isDebug = type === 'debug';
   const syncMsg = isDebug 
     ? 'Test sync with 10 most recent issues?\n\nThis will fetch a small dataset for testing purposes.'
-    : `Sync ${type === 'all' ? 'all' : 'new/updated'} tickets from JIRA?\n\nThis will fetch data directly from JIRA using your current browser session.`;
+    : `Sync ${type === 'all' ? 'all' : 'new/updated'} tickets from JIRA?\n\nThis will fetch ALL data directly from JIRA using your current browser session.\n\nNote: This may take a few minutes for large datasets (3000+ issues).`;
   
   if (!confirm(syncMsg)) {
     console.log('Sync cancelled by user');
@@ -228,52 +228,78 @@ window.syncData = async function syncData(type) {
     
     // Build JQL query
     let jql = `project = ${JIRA_CONFIG.projectKey} ORDER BY created DESC`;
-    let maxResults = isDebug ? 10 : 1000;
     
     console.log(`📋 JQL Query: ${jql}`);
-    console.log(`📊 Max Results: ${maxResults}`);
     console.log(`🌐 Fetching from: https://${JIRA_CONFIG.domain}/rest/api/2/search`);
     
-    // Fetch issues using the bridge
-    console.log('🔄 Calling JiraBridge.fetch...');
-    const data = await window.JiraBridge.fetch(
-      `https://${JIRA_CONFIG.domain}/rest/api/2/search`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          jql: jql,
-          maxResults: maxResults,
-          fields: ['summary', 'issuetype', 'status', 'created', 'updated', 'customfield_*']
-        })
+    // Fetch ALL issues with pagination
+    let allIssues = [];
+    let startAt = 0;
+    const maxResults = isDebug ? 10 : 100; // Fetch in batches of 100
+    let totalIssues = 0;
+    let fieldNames = {};
+    
+    do {
+      console.log(`🔄 Fetching batch starting at ${startAt}...`);
+      
+      const data = await window.JiraBridge.fetch(
+        `https://${JIRA_CONFIG.domain}/rest/api/2/search`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            jql: jql,
+            startAt: startAt,
+            maxResults: maxResults,
+            fields: ['summary', 'issuetype', 'status', 'created', 'updated', 'customfield_*'],
+            expand: 'names'
+          })
+        }
+      );
+      
+      console.log(`📦 Batch received: ${data.issues ? data.issues.length : 0} issues`);
+      
+      if (data.issues && data.issues.length > 0) {
+        allIssues = allIssues.concat(data.issues);
+        totalIssues = data.total;
+        
+        // Store field names from first batch
+        if (data.names && Object.keys(fieldNames).length === 0) {
+          fieldNames = data.names;
+        }
+        
+        // Update progress
+        showAlert('info', `Fetching issues: ${allIssues.length} / ${totalIssues}...`);
       }
-    );
+      
+      startAt += maxResults;
+      
+      // Safety check: stop if we've fetched more than expected or hit JIRA's limit
+      if (startAt > 10000) {
+        console.warn('⚠️ Reached JIRA\'s 10,000 issue limit');
+        break;
+      }
+      
+      // For debug mode, only fetch one batch
+      if (isDebug) break;
+      
+    } while (allIssues.length < totalIssues);
     
-    console.log('📦 JIRA API Response received');
-    console.log('📊 Data:', data);
-    console.log(`✅ Fetched ${data.issues ? data.issues.length : 0} issues from JIRA`);
+    console.log(`✅ Fetched ${allIssues.length} total issues from JIRA`);
     
-    if (data.issues.length === 0) {
+    if (allIssues.length === 0) {
       hideLoading();
       showAlert('warning', 'No issues found matching the criteria');
       return;
     }
     
-    // Get field names for custom fields
-    const fieldNames = {};
-    if (data.names) {
-      Object.keys(data.names).forEach(key => {
-        fieldNames[key] = data.names[key];
-      });
-    }
-    
     console.log('💾 Sending data to Google Sheets...');
-    showAlert('info', `Processing ${data.issues.length} issues...`);
+    showAlert('info', `Processing ${allIssues.length} issues...`);
     
     // Send to backend
-    console.log('📤 Calling storeJiraDataFromBrowser with', data.issues.length, 'issues');
+    console.log('📤 Calling storeJiraDataFromBrowser with', allIssues.length, 'issues');
     google.script.run
       .withSuccessHandler(function(result) {
         hideLoading();
@@ -293,7 +319,7 @@ window.syncData = async function syncData(type) {
         console.error('❌ Backend error:', error);
         showAlert('danger', `❌ Failed to save data: ${error.message}`);
       })
-      .storeJiraDataFromBrowser(data.issues, fieldNames);
+      .storeJiraDataFromBrowser(allIssues, fieldNames);
     
   } catch (error) {
     hideLoading();
