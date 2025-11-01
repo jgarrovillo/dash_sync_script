@@ -527,17 +527,78 @@ function generateColors(count) {
   return colors;
 }
 
+// Pagination state
+let currentPage = 1;
+let itemsPerPage = 25;
+let filteredTickets = [];
+let allTickets = [];
+
 function renderTicketsTable(tickets) {
+  allTickets = tickets;
+  filteredTickets = tickets;
+  currentPage = 1;
+  
+  // Set up search and filter handlers
+  setupTableFilters();
+  
+  // Initial render
+  updateTicketsTable();
+}
+
+function setupTableFilters() {
+  const searchInput = document.getElementById('ticketSearch');
+  const filterSelects = document.querySelectorAll('.ticket-filter');
+  
+  if (searchInput) {
+    searchInput.addEventListener('input', applyFilters);
+  }
+  
+  filterSelects.forEach(select => {
+    select.addEventListener('change', applyFilters);
+  });
+}
+
+function applyFilters() {
+  const searchTerm = document.getElementById('ticketSearch')?.value.toLowerCase() || '';
+  const typeFilter = document.getElementById('filterType')?.value || '';
+  const statusFilter = document.getElementById('filterStatus')?.value || '';
+  
+  filteredTickets = allTickets.filter(ticket => {
+    const matchesSearch = !searchTerm || 
+      ticket.issueKey.toLowerCase().includes(searchTerm) ||
+      ticket.summary.toLowerCase().includes(searchTerm) ||
+      (ticket.environments && ticket.environments.toLowerCase().includes(searchTerm)) ||
+      (ticket.complianceJurisdiction && ticket.complianceJurisdiction.toLowerCase().includes(searchTerm)) ||
+      (ticket.template && ticket.template.toLowerCase().includes(searchTerm));
+    
+    const matchesType = !typeFilter || ticket.issueType === typeFilter;
+    const matchesStatus = !statusFilter || ticket.status === statusFilter;
+    
+    return matchesSearch && matchesType && matchesStatus;
+  });
+  
+  currentPage = 1;
+  updateTicketsTable();
+}
+
+function updateTicketsTable() {
   const tbody = document.getElementById('ticketsTable');
   
-  if (tickets.length === 0) {
+  if (filteredTickets.length === 0) {
     tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No tickets found</td></tr>';
+    updatePagination(0);
     return;
   }
   
-  const sorted = tickets.sort((a, b) => b.createdTimestamp - a.createdTimestamp);
+  // Sort by created date (newest first)
+  const sorted = [...filteredTickets].sort((a, b) => b.createdTimestamp - a.createdTimestamp);
   
-  const html = sorted.map(function(ticket) {
+  // Paginate
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const pageTickets = sorted.slice(startIndex, endIndex);
+  
+  const html = pageTickets.map(function(ticket) {
     return `<tr>
       <td><strong>${escapeHtml(ticket.issueKey)}</strong></td>
       <td>${escapeHtml(ticket.summary)}</td>
@@ -551,7 +612,54 @@ function renderTicketsTable(tickets) {
   }).join('');
   
   tbody.innerHTML = html;
+  updatePagination(sorted.length);
 }
+
+function updatePagination(totalItems) {
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const paginationContainer = document.getElementById('tablePagination');
+  
+  if (!paginationContainer) return;
+  
+  if (totalPages <= 1) {
+    paginationContainer.innerHTML = '';
+    return;
+  }
+  
+  let html = '<nav><ul class="pagination pagination-sm mb-0">';
+  
+  // Previous button
+  html += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+    <a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a>
+  </li>`;
+  
+  // Page numbers (show max 5 pages)
+  const startPage = Math.max(1, currentPage - 2);
+  const endPage = Math.min(totalPages, startPage + 4);
+  
+  for (let i = startPage; i <= endPage; i++) {
+    html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+      <a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>
+    </li>`;
+  }
+  
+  // Next button
+  html += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+    <a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>
+  </li>`;
+  
+  html += '</ul></nav>';
+  html += `<small class="text-muted ms-3">Showing ${(currentPage - 1) * itemsPerPage + 1}-${Math.min(currentPage * itemsPerPage, totalItems)} of ${totalItems}</small>`;
+  
+  paginationContainer.innerHTML = html;
+}
+
+window.changePage = function(page) {
+  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
+  if (page < 1 || page > totalPages) return;
+  currentPage = page;
+  updateTicketsTable();
+};
 
 // Bridge functions
 function isBridgeAvailable() {
