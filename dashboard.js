@@ -266,6 +266,7 @@ window.syncData = async function syncData(type) {
       );
       
       console.log(`📦 Batch received: ${data.issues ? data.issues.length : 0} issues`);
+      console.log(`📋 Field names in response:`, data.names ? Object.keys(data.names).length : 0);
       
       if (data.issues && data.issues.length > 0) {
         allIssues = allIssues.concat(data.issues);
@@ -274,6 +275,8 @@ window.syncData = async function syncData(type) {
         // Store field names from first batch
         if (data.names && Object.keys(fieldNames).length === 0) {
           fieldNames = data.names;
+          console.log(`✅ Stored ${Object.keys(fieldNames).length} field name mappings`);
+          console.log('Sample field names:', Object.entries(fieldNames).slice(0, 5).map(([k,v]) => `${v}=${k}`).join(', '));
         }
         
         // Update progress
@@ -294,6 +297,7 @@ window.syncData = async function syncData(type) {
     } while (allIssues.length < totalIssues);
     
     console.log(`✅ Fetched ${allIssues.length} total issues from JIRA`);
+    console.log(`📋 Total field names collected: ${Object.keys(fieldNames).length}`);
     
     if (allIssues.length === 0) {
       hideLoading();
@@ -301,11 +305,17 @@ window.syncData = async function syncData(type) {
       return;
     }
     
+    if (Object.keys(fieldNames).length === 0) {
+      console.warn('⚠️ WARNING: No field names received from JIRA! Custom fields will be empty.');
+      showAlert('warning', 'Warning: No field name mappings received. Custom fields may be empty.');
+    }
+    
     console.log('💾 Sending data to Google Sheets...');
     showAlert('info', `Processing ${allIssues.length} issues...`);
     
     // Send to backend
     console.log('📤 Calling storeJiraDataFromBrowser with', allIssues.length, 'issues');
+    console.log('📤 Field names object:', fieldNames);
     google.script.run
       .withSuccessHandler(function(result) {
         hideLoading();
