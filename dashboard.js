@@ -810,31 +810,65 @@ window.syncData = async function syncData(type) {
     }
     
     console.log('💾 Sending data to Google Sheets...');
-    showAlert('info', `Processing ${allIssues.length} issues...`);
+    showAlert('info', `Processing ${allIssues.length} issues in batches...`);
     
-    // Send to backend
-    console.log('📤 Calling storeJiraDataFromBrowser with', allIssues.length, 'issues');
-    console.log('📤 Field names object:', fieldNames);
-    google.script.run
-      .withSuccessHandler(function(result) {
-        hideLoading();
-        console.log('✅ Sync completed:', result);
-        
-        if (result && result.success) {
-          showAlert('success', `✅ ${result.message}`);
-          console.log(`📊 Stats: ${result.inserted} inserted, ${result.updated} updated`);
-          // Reload dashboard to show new data
-          setTimeout(() => loadDashboard(), 1000);
-        } else {
-          showAlert('danger', `❌ Sync failed: ${result ? result.message : 'Unknown error'}`);
-        }
-      })
-      .withFailureHandler(function(error) {
-        hideLoading();
-        console.error('❌ Backend error:', error);
-        showAlert('danger', `❌ Failed to save data: ${error.message}`);
-      })
-      .storeJiraDataFromBrowser(allIssues, fieldNames);
+    // Send to backend in batches to avoid payload size limits
+    const BATCH_SIZE = 100; // Process 100 issues at a time
+    const totalBatches = Math.ceil(allIssues.length / BATCH_SIZE);
+    let processedBatches = 0;
+    let totalInserted = 0;
+    let totalUpdated = 0;
+    
+    console.log(`📤 Sending ${allIssues.length} issues in ${totalBatches} batches of ${BATCH_SIZE}`);
+    
+    async function processBatch(batchIndex) {
+      const startIdx = batchIndex * BATCH_SIZE;
+      const endIdx = Math.min(startIdx + BATCH_SIZE, allIssues.length);
+      const batch = allIssues.slice(startIdx, endIdx);
+      
+      console.log(`📦 Processing batch ${batchIndex + 1}/${totalBatches} (issues ${startIdx + 1}-${endIdx})`);
+      showAlert('info', `Processing batch ${batchIndex + 1}/${totalBatches}...`);
+      
+      return new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(function(result) {
+            if (result && result.success) {
+              processedBatches++;
+              totalInserted += result.inserted || 0;
+              totalUpdated += result.updated || 0;
+              console.log(`✅ Batch ${batchIndex + 1} complete: ${result.inserted} inserted, ${result.updated} updated`);
+              resolve(result);
+            } else {
+              reject(new Error(result ? result.message : 'Unknown error'));
+            }
+          })
+          .withFailureHandler(function(error) {
+            console.error(`❌ Batch ${batchIndex + 1} failed:`, error);
+            reject(error);
+          })
+          .storeJiraDataFromBrowser(batch, fieldNames);
+      });
+    }
+    
+    // Process all batches sequentially
+    try {
+      for (let i = 0; i < totalBatches; i++) {
+        await processBatch(i);
+      }
+      
+      hideLoading();
+      const finalMessage = `✅ Sync complete! ${totalInserted} inserted, ${totalUpdated} updated (${allIssues.length} total issues)`;
+      console.log(finalMessage);
+      showAlert('success', finalMessage);
+      
+      // Reload dashboard to show new data
+      setTimeout(() => loadDashboard(), 1000);
+      
+    } catch (error) {
+      hideLoading();
+      console.error('❌ Batch processing error:', error);
+      showAlert('danger', `❌ Sync failed after ${processedBatches} batches: ${error.message}`);
+    }
     
   } catch (error) {
     hideLoading();
