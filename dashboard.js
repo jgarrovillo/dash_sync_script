@@ -232,8 +232,10 @@ window.syncData = async function syncData(type) {
     
     console.log(`📋 JQL Query: ${jql}`);
     console.log(`📊 Max Results: ${maxResults}`);
+    console.log(`🌐 Fetching from: https://${JIRA_CONFIG.domain}/rest/api/2/search`);
     
     // Fetch issues using the bridge
+    console.log('🔄 Calling JiraBridge.fetch...');
     const response = await window.JiraBridge.fetch(
       `https://${JIRA_CONFIG.domain}/rest/api/2/search`,
       {
