@@ -287,8 +287,7 @@ window.syncData = async function syncData(type) {
               'assignee', 'reporter', 'creator', 'created', 'updated', 'resolutiondate',
               // Request all custom fields explicitly
               'customfield_*'
-            ],
-            expand: ['names']
+            ]
           })
         }
       );
