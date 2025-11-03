@@ -306,13 +306,13 @@ let chartTypes = {
     const dataValues = Object.values(envData);
     
     // Adjust canvas height for bar charts with many items
-    if (chartType === 'bar' && labels.length > 10) {
-      const minHeight = Math.max(350, labels.length * 30);
+    if (chartType === 'bar' && labels.length > 15) {
+      const minHeight = Math.max(550, labels.length * 30);
       ctx.style.height = minHeight + 'px';
       ctx.parentElement.style.minHeight = minHeight + 'px';
     } else {
-      ctx.style.height = '350px';
-      ctx.parentElement.style.minHeight = '350px';
+      ctx.style.height = '550px';
+      ctx.parentElement.style.minHeight = '550px';
     }
     
     // Generate colors for each environment
@@ -433,13 +433,13 @@ let chartTypes = {
     const dataValues = Object.values(jurData);
     
     // Adjust canvas height for bar charts with many items
-    if (chartType === 'bar' && labels.length > 10) {
-      const minHeight = Math.max(350, labels.length * 30);
+    if (chartType === 'bar' && labels.length > 15) {
+      const minHeight = Math.max(550, labels.length * 30);
       ctx.style.height = minHeight + 'px';
       ctx.parentElement.style.minHeight = minHeight + 'px';
     } else {
-      ctx.style.height = '350px';
-      ctx.parentElement.style.minHeight = '350px';
+      ctx.style.height = '550px';
+      ctx.parentElement.style.minHeight = '550px';
     }
     
     // Generate colors for each jurisdiction
@@ -553,13 +553,13 @@ let chartTypes = {
     const dataValues = Object.values(templateData);
     
     // Adjust canvas height for bar charts with many items
-    if (chartType === 'bar' && labels.length > 10) {
-      const minHeight = Math.max(350, labels.length * 30);
+    if (chartType === 'bar' && labels.length > 15) {
+      const minHeight = Math.max(550, labels.length * 30);
       ctx.style.height = minHeight + 'px';
       ctx.parentElement.style.minHeight = minHeight + 'px';
     } else {
-      ctx.style.height = '350px';
-      ctx.parentElement.style.minHeight = '350px';
+      ctx.style.height = '550px';
+      ctx.parentElement.style.minHeight = '550px';
     }
     
     // Use specific colors for templates
