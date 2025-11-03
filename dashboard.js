@@ -697,6 +697,9 @@ let chartTypes = {
    * Get appropriate badge class for ticket status
    */
   function getStatusBadgeClass(status) {
+    // Log the status being processed
+    console.log('Processing status:', status, 'Type:', typeof status);
+    
     const statusMap = {
       'To Do': 'bg-secondary',           // Gray - not started
       'In Progress': 'bg-primary',       // Blue - actively working
@@ -704,7 +707,10 @@ let chartTypes = {
       'On Hold': 'bg-warning',           // Yellow - paused
       'Cancelled': 'bg-danger'           // Red - cancelled
     };
-    return statusMap[status] || 'bg-secondary';
+    
+    const result = statusMap[status] || 'bg-secondary';
+    console.log('Status:', status, '-> Class:', result);
+    return result;
   }
 
   function updateTicketsTable() {
@@ -779,7 +785,7 @@ let chartTypes = {
         <td><small>${escapeHtml(formattedDate)}</small></td>
         <td><small>${escapeHtml(ticket.environments || '')}</small></td>
         <td><small>${escapeHtml(cleanJurisdiction)}</small></td>
-        <td><span class="badge ${getStatusBadgeClass(ticket.status)}" style="min-width: 100px; display: inline-block;">${escapeHtml(ticket.status)}</span></td>
+        <td><span class="badge ${getStatusBadgeClass(ticket.status.trim())}" style="min-width: 100px; display: inline-block;">${escapeHtml(ticket.status)}</span></td>
       </tr>`;
     }).join('');
     
