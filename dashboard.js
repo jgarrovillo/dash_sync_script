@@ -404,7 +404,14 @@ let chartTypes = {
       return;
     }
     
-    const labels = Object.keys(jurData);
+    // Clean up jurisdiction labels by removing BODATA references (e.g., "Romania (BODATA-1377451)" -> "Romania")
+    const labels = Object.keys(jurData).map(label => {
+      // Remove everything after the first "(" character if it contains "BODATA"
+      const cleanLabel = label.includes('(BODATA-') 
+        ? label.split('(')[0].trim() 
+        : label;
+      return cleanLabel;
+    });
     const dataValues = Object.values(jurData);
     
     // Generate colors for each jurisdiction
