@@ -9,6 +9,7 @@ let chartTypes = {
   jurisdiction: localStorage.getItem('chartType_jurisdiction') || 'pie',
   template: localStorage.getItem('chartType_template') || 'bar'
 };
+let hasAutoSynced = false; // Flag to prevent auto-sync loop
 
   // JIRA Configuration
   const JIRA_CONFIG = {
@@ -151,9 +152,10 @@ let chartTypes = {
       renderTicketsTable(data.tickets);
     }
     
-    // Auto-sync delta after initial load (only if JIRA Bridge is available)
-    if (isBridgeAvailable()) {
+    // Auto-sync delta after initial load (only if JIRA Bridge is available and hasn't already synced)
+    if (isBridgeAvailable() && !hasAutoSynced) {
       console.log('🔄 Triggering auto-sync for new/updated tickets...');
+      hasAutoSynced = true; // Set flag to prevent loop
       setTimeout(() => {
         syncData('delta', true); // Auto-sync without confirmation
       }, 2000); // Wait 2 seconds after page load
