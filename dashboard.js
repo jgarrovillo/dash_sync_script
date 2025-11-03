@@ -462,7 +462,7 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
       }
     });
     
-    // Build labels and data arrays
+    // Build labels and data arrays with hierarchical grouping
     const labels = [];
     const dataValues = [];
     
@@ -474,22 +474,18 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
       const regions = Object.keys(countryData.regions);
       
       if (regions.length === 0) {
-        // Country with no regions
+        // Country with no regions - show as-is
         labels.push(country);
-        dataValues.push(countryData.total);
-      } else if (regions.length === 1) {
-        // Country with single region - show as "Country - Region"
-        labels.push(`${country} - ${regions[0]}`);
         dataValues.push(countryData.total);
       } else {
-        // Country with multiple regions - show country total first, then regions indented
-        labels.push(country);
-        dataValues.push(countryData.total);
+        // Country with regions - show all with visual hierarchy
+        // Don't show country total, just the regions grouped under it
         
-        // Sort regions alphabetically and add them
+        // Sort regions alphabetically
         const sortedRegions = regions.sort((a, b) => a.localeCompare(b));
         sortedRegions.forEach(region => {
-          labels.push(`  ↳ ${region}`);
+          // Show as "Country ├─ Region" for visual grouping
+          labels.push(`${country} ├─ ${region}`);
           dataValues.push(countryData.regions[region]);
         });
       }
