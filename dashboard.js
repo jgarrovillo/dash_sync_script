@@ -3,6 +3,12 @@ console.log('🚀 Dashboard JavaScript loaded from external file');
 
 let allData = null;
 let charts = {};
+let chartData = {}; // Store chart data for re-rendering
+let chartTypes = {
+  environment: localStorage.getItem('chartType_environment') || 'pie',
+  jurisdiction: localStorage.getItem('chartType_jurisdiction') || 'pie',
+  template: localStorage.getItem('chartType_template') || 'bar'
+};
 
   // JIRA Configuration
   const JIRA_CONFIG = {
@@ -136,9 +142,9 @@ let charts = {};
     // Render charts and tables
     if (data.summary) {
       renderPeriodChart(data.summary.byPeriod);
-      renderEnvironmentChart(data.summary.byEnvironment);
-      renderJurisdictionChart(data.summary.byJurisdiction);
-      renderTemplateChart(data.summary.byTemplate);
+      renderEnvironmentChart(data.summary.byEnvironment, chartTypes.environment);
+      renderJurisdictionChart(data.summary.byJurisdiction, chartTypes.jurisdiction);
+      renderTemplateChart(data.summary.byTemplate, chartTypes.template);
     }
     
     if (data.tickets) {
@@ -258,16 +264,24 @@ let charts = {};
   }
 
   /**
-  * Chart 2: Environment Chart (Bar/Pie)
+  * Chart 2: Environment Chart (Bar/Pie/Doughnut)
   * Shows distribution of environments for Setup Request issues
   */
-  function renderEnvironmentChart(envData) {
-    console.log('Rendering environment chart:', envData);
+  function renderEnvironmentChart(envData, chartType) {
+    console.log('Rendering environment chart:', envData, 'Type:', chartType);
     
     const ctx = document.getElementById('environmentChart');
     if (!ctx) {
       console.error('Environment chart canvas not found');
       return;
+    }
+    
+    // Store data for re-rendering
+    chartData.environment = envData;
+    
+    // Use stored chart type if not provided
+    if (!chartType) {
+      chartType = chartTypes.environment;
     }
     
     // Destroy existing chart if it exists
@@ -286,16 +300,17 @@ let charts = {};
     // Generate colors for each environment
     const colors = generateColors(labels.length);
     
-    // Use pie chart for better visualization of distribution
-    charts.environmentChart = new Chart(ctx, {
-      type: 'pie',
+    // Build chart configuration based on type
+    const config = {
+      type: chartType,
       data: {
         labels: labels,
         datasets: [{
+          label: 'Setup Requests',
           data: dataValues,
           backgroundColor: colors,
-          borderColor: '#161b22',
-          borderWidth: 2
+          borderColor: chartType === 'bar' ? colors : '#161b22',
+          borderWidth: chartType === 'bar' ? 1 : 2
         }]
       },
       options: {
@@ -303,7 +318,8 @@ let charts = {};
         plugins: {
           ...CHART_DEFAULTS.plugins,
           legend: {
-            position: 'right',
+            position: chartType === 'bar' ? 'top' : 'right',
+            display: chartType !== 'bar',
             labels: {
               color: '#e6edf3',
               font: { size: 11 },
@@ -319,7 +335,7 @@ let charts = {};
             callbacks: {
               label: function(context) {
                 const label = context.label || '';
-                const value = context.parsed || 0;
+                const value = chartType === 'bar' ? context.parsed.y : context.parsed;
                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
                 const percentage = ((value / total) * 100).toFixed(1);
                 return `${label}: ${value} (${percentage}%)`;
@@ -328,20 +344,54 @@ let charts = {};
           }
         }
       }
-    });
+    };
+    
+    // Add scales for bar chart
+    if (chartType === 'bar') {
+      config.options.scales = {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: '#7d8590',
+            stepSize: 1
+          },
+          grid: {
+            color: '#30363d'
+          }
+        },
+        x: {
+          ticks: {
+            color: '#7d8590'
+          },
+          grid: {
+            color: '#30363d'
+          }
+        }
+      };
+    }
+    
+    charts.environmentChart = new Chart(ctx, config);
   }
 
   /**
-  * Chart 3: Compliance Jurisdiction Chart (Bar/Pie)
+  * Chart 3: Compliance Jurisdiction Chart (Bar/Pie/Doughnut)
   * Shows distribution of compliance jurisdictions for Setup Request issues
   */
-  function renderJurisdictionChart(jurData) {
-    console.log('Rendering jurisdiction chart:', jurData);
+  function renderJurisdictionChart(jurData, chartType) {
+    console.log('Rendering jurisdiction chart:', jurData, 'Type:', chartType);
     
     const ctx = document.getElementById('jurisdictionChart');
     if (!ctx) {
       console.error('Jurisdiction chart canvas not found');
       return;
+    }
+    
+    // Store data for re-rendering
+    chartData.jurisdiction = jurData;
+    
+    // Use stored chart type if not provided
+    if (!chartType) {
+      chartType = chartTypes.jurisdiction;
     }
     
     // Destroy existing chart if it exists
@@ -360,16 +410,17 @@ let charts = {};
     // Generate colors for each jurisdiction
     const colors = generateColors(labels.length);
     
-    // Use pie chart for better visualization
-    charts.jurisdictionChart = new Chart(ctx, {
-      type: 'pie',
+    // Build chart configuration based on type
+    const config = {
+      type: chartType,
       data: {
         labels: labels,
         datasets: [{
+          label: 'Setup Requests',
           data: dataValues,
           backgroundColor: colors,
-          borderColor: '#161b22',
-          borderWidth: 2
+          borderColor: chartType === 'bar' ? colors : '#161b22',
+          borderWidth: chartType === 'bar' ? 1 : 2
         }]
       },
       options: {
@@ -377,7 +428,8 @@ let charts = {};
         plugins: {
           ...CHART_DEFAULTS.plugins,
           legend: {
-            position: 'right',
+            position: chartType === 'bar' ? 'top' : 'right',
+            display: chartType !== 'bar',
             labels: {
               color: '#e6edf3',
               font: { size: 11 },
@@ -393,7 +445,7 @@ let charts = {};
             callbacks: {
               label: function(context) {
                 const label = context.label || '';
-                const value = context.parsed || 0;
+                const value = chartType === 'bar' ? context.parsed.y : context.parsed;
                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
                 const percentage = ((value / total) * 100).toFixed(1);
                 return `${label}: ${value} (${percentage}%)`;
@@ -402,20 +454,54 @@ let charts = {};
           }
         }
       }
-    });
+    };
+    
+    // Add scales for bar chart
+    if (chartType === 'bar') {
+      config.options.scales = {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: '#7d8590',
+            stepSize: 1
+          },
+          grid: {
+            color: '#30363d'
+          }
+        },
+        x: {
+          ticks: {
+            color: '#7d8590'
+          },
+          grid: {
+            color: '#30363d'
+          }
+        }
+      };
+    }
+    
+    charts.jurisdictionChart = new Chart(ctx, config);
   }
 
   /**
-  * Chart 4: Template Chart (Bar/Pie)
+  * Chart 4: Template Chart (Bar/Pie/Doughnut)
   * Shows distribution of templates (ISR - NLC Setup, ISR - Evo OSS Setup) for Setup Request issues
   */
-  function renderTemplateChart(templateData) {
-    console.log('Rendering template chart:', templateData);
+  function renderTemplateChart(templateData, chartType) {
+    console.log('Rendering template chart:', templateData, 'Type:', chartType);
     
     const ctx = document.getElementById('templateChart');
     if (!ctx) {
       console.error('Template chart canvas not found');
       return;
+    }
+    
+    // Store data for re-rendering
+    chartData.template = templateData;
+    
+    // Use stored chart type if not provided
+    if (!chartType) {
+      chartType = chartTypes.template;
     }
     
     // Destroy existing chart if it exists
@@ -440,58 +526,79 @@ let charts = {};
       CHART_COLORS.info
     ].slice(0, labels.length);
     
-    // Use bar chart for template comparison
-    charts.templateChart = new Chart(ctx, {
-      type: 'bar',
+    // Build chart configuration based on type
+    const config = {
+      type: chartType,
       data: {
         labels: labels,
         datasets: [{
           label: 'Setup Requests',
           data: dataValues,
           backgroundColor: colors,
-          borderColor: colors,
-          borderWidth: 1
+          borderColor: chartType === 'bar' ? colors : '#161b22',
+          borderWidth: chartType === 'bar' ? 1 : 2
         }]
       },
       options: {
         ...CHART_DEFAULTS,
-        indexAxis: 'y', // Horizontal bar chart for better label readability
-        scales: {
-          x: {
-            beginAtZero: true,
-            ticks: {
-              color: '#7d8590',
-              stepSize: 1
-            },
-            grid: {
-              color: '#30363d'
-            }
-          },
-          y: {
-            ticks: {
-              color: '#7d8590',
-              font: { size: 10 }
-            },
-            grid: {
-              color: '#30363d'
-            }
-          }
-        },
         plugins: {
           ...CHART_DEFAULTS.plugins,
           legend: {
-            display: false
+            position: chartType === 'bar' ? 'top' : 'right',
+            display: chartType !== 'bar',
+            labels: {
+              color: '#e6edf3',
+              font: { size: 11 },
+              padding: 10
+            }
           },
           tooltip: {
             backgroundColor: '#161b22',
             titleColor: '#e6edf3',
             bodyColor: '#e6edf3',
             borderColor: '#30363d',
-            borderWidth: 1
+            borderWidth: 1,
+            callbacks: {
+              label: function(context) {
+                const label = context.label || '';
+                const value = chartType === 'bar' ? (config.options.indexAxis === 'y' ? context.parsed.x : context.parsed.y) : context.parsed;
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const percentage = ((value / total) * 100).toFixed(1);
+                return `${label}: ${value} (${percentage}%)`;
+              }
+            }
           }
         }
       }
-    });
+    };
+    
+    // Add scales and orientation for bar chart
+    if (chartType === 'bar') {
+      config.options.indexAxis = 'y'; // Horizontal bar chart for better label readability
+      config.options.scales = {
+        x: {
+          beginAtZero: true,
+          ticks: {
+            color: '#7d8590',
+            stepSize: 1
+          },
+          grid: {
+            color: '#30363d'
+          }
+        },
+        y: {
+          ticks: {
+            color: '#7d8590',
+            font: { size: 10 }
+          },
+          grid: {
+            color: '#30363d'
+          }
+        }
+      };
+    }
+    
+    charts.templateChart = new Chart(ctx, config);
   }
 
   /**
@@ -657,6 +764,42 @@ let charts = {};
     if (page < 1 || page > totalPages) return;
     currentPage = page;
     updateTicketsTable();
+  };
+
+  /**
+   * Change chart type and re-render
+   */
+  window.changeChartType = function(chartName, newType) {
+    console.log(`Changing ${chartName} chart to ${newType}`);
+    
+    // Update stored chart type
+    chartTypes[chartName] = newType;
+    localStorage.setItem(`chartType_${chartName}`, newType);
+    
+    // Update button states
+    const buttons = document.querySelectorAll(`[onclick*="changeChartType('${chartName}'"`);
+    buttons.forEach(btn => {
+      if (btn.onclick.toString().includes(`'${newType}'`)) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    
+    // Re-render the chart with stored data
+    if (chartData[chartName]) {
+      switch(chartName) {
+        case 'environment':
+          renderEnvironmentChart(chartData.environment, newType);
+          break;
+        case 'jurisdiction':
+          renderJurisdictionChart(chartData.jurisdiction, newType);
+          break;
+        case 'template':
+          renderTemplateChart(chartData.template, newType);
+          break;
+      }
+    }
   };
 
   // Bridge functions
