@@ -306,8 +306,10 @@ let chartTypes = {
       return;
     }
     
-    const labels = Object.keys(envData);
-    const dataValues = Object.values(envData);
+    // Sort environments alphabetically
+    const sortedEntries = Object.entries(envData).sort((a, b) => a[0].localeCompare(b[0]));
+    const labels = sortedEntries.map(entry => entry[0]);
+    const dataValues = sortedEntries.map(entry => entry[1]);
     
     // Adjust canvas height for bar charts with many items
     if (chartType === 'bar' && labels.length > 15) {
@@ -428,15 +430,23 @@ let chartTypes = {
       return;
     }
     
+    // Sort jurisdictions alphabetically and clean up labels
+    const sortedEntries = Object.entries(jurData).sort((a, b) => {
+      // Clean labels for comparison
+      const cleanA = a[0].includes('(BODATA-') ? a[0].split('(')[0].trim() : a[0];
+      const cleanB = b[0].includes('(BODATA-') ? b[0].split('(')[0].trim() : b[0];
+      return cleanA.localeCompare(cleanB);
+    });
+    
     // Clean up jurisdiction labels by removing BODATA references (e.g., "Romania (BODATA-1377451)" -> "Romania")
-    const labels = Object.keys(jurData).map(label => {
-      // Remove everything after the first "(" character if it contains "BODATA"
+    const labels = sortedEntries.map(entry => {
+      const label = entry[0];
       const cleanLabel = label.includes('(BODATA-') 
         ? label.split('(')[0].trim() 
         : label;
       return cleanLabel;
     });
-    const dataValues = Object.values(jurData);
+    const dataValues = sortedEntries.map(entry => entry[1]);
     
     // Adjust canvas height for bar charts with many items
     if (chartType === 'bar' && labels.length > 15) {
