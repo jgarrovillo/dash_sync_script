@@ -432,23 +432,68 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
       return;
     }
     
-    // Sort jurisdictions alphabetically and clean up labels
-    const sortedEntries = Object.entries(jurData).sort((a, b) => {
-      // Clean labels for comparison
-      const cleanA = a[0].includes('(BODATA-') ? a[0].split('(')[0].trim() : a[0];
-      const cleanB = b[0].includes('(BODATA-') ? b[0].split('(')[0].trim() : b[0];
-      return cleanA.localeCompare(cleanB);
+    // Group jurisdictions by country
+    const groupedData = {};
+    
+    Object.entries(jurData).forEach(([rawLabel, count]) => {
+      // Remove BODATA reference
+      const cleanLabel = rawLabel.includes('(BODATA-') 
+        ? rawLabel.split('(')[0].trim() 
+        : rawLabel;
+      
+      // Check if label contains a comma (country, state/province format)
+      if (cleanLabel.includes(',')) {
+        const parts = cleanLabel.split(',').map(p => p.trim());
+        const country = parts[0];
+        const region = parts.slice(1).join(', '); // Handle cases with multiple commas
+        
+        // Group by country
+        if (!groupedData[country]) {
+          groupedData[country] = { total: 0, regions: {} };
+        }
+        groupedData[country].total += count;
+        groupedData[country].regions[region] = (groupedData[country].regions[region] || 0) + count;
+      } else {
+        // No comma, treat as standalone country
+        if (!groupedData[cleanLabel]) {
+          groupedData[cleanLabel] = { total: 0, regions: {} };
+        }
+        groupedData[cleanLabel].total += count;
+      }
     });
     
-    // Clean up jurisdiction labels by removing BODATA references (e.g., "Romania (BODATA-1377451)" -> "Romania")
-    const labels = sortedEntries.map(entry => {
-      const label = entry[0];
-      const cleanLabel = label.includes('(BODATA-') 
-        ? label.split('(')[0].trim() 
-        : label;
-      return cleanLabel;
+    // Build labels and data arrays
+    const labels = [];
+    const dataValues = [];
+    
+    // Sort countries alphabetically
+    const sortedCountries = Object.keys(groupedData).sort((a, b) => a.localeCompare(b));
+    
+    sortedCountries.forEach(country => {
+      const countryData = groupedData[country];
+      const regions = Object.keys(countryData.regions);
+      
+      if (regions.length === 0) {
+        // Country with no regions
+        labels.push(country);
+        dataValues.push(countryData.total);
+      } else if (regions.length === 1) {
+        // Country with single region - show as "Country - Region"
+        labels.push(`${country} - ${regions[0]}`);
+        dataValues.push(countryData.total);
+      } else {
+        // Country with multiple regions - show country total first, then regions indented
+        labels.push(country);
+        dataValues.push(countryData.total);
+        
+        // Sort regions alphabetically and add them
+        const sortedRegions = regions.sort((a, b) => a.localeCompare(b));
+        sortedRegions.forEach(region => {
+          labels.push(`  ↳ ${region}`);
+          dataValues.push(countryData.regions[region]);
+        });
+      }
     });
-    const dataValues = sortedEntries.map(entry => entry[1]);
     
     // Adjust canvas height for bar charts with many items
     if (chartType === 'bar' && labels.length > 15) {
