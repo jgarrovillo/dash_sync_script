@@ -311,7 +311,9 @@ let chartTypes = {
     
     // Adjust canvas height for bar charts with many items
     if (chartType === 'bar' && labels.length > 15) {
-      const minHeight = Math.max(550, labels.length * 30);
+      // Cap the height at 1000px to fit on 1080p screens
+      const calculatedHeight = labels.length * 25;
+      const minHeight = Math.min(Math.max(550, calculatedHeight), 1000);
       ctx.style.height = minHeight + 'px';
       ctx.parentElement.style.minHeight = minHeight + 'px';
     } else {
@@ -438,7 +440,9 @@ let chartTypes = {
     
     // Adjust canvas height for bar charts with many items
     if (chartType === 'bar' && labels.length > 15) {
-      const minHeight = Math.max(550, labels.length * 30);
+      // Cap the height at 1000px to fit on 1080p screens
+      const calculatedHeight = labels.length * 25;
+      const minHeight = Math.min(Math.max(550, calculatedHeight), 1000);
       ctx.style.height = minHeight + 'px';
       ctx.parentElement.style.minHeight = minHeight + 'px';
     } else {
@@ -558,7 +562,9 @@ let chartTypes = {
     
     // Adjust canvas height for bar charts with many items
     if (chartType === 'bar' && labels.length > 15) {
-      const minHeight = Math.max(550, labels.length * 30);
+      // Cap the height at 1000px to fit on 1080p screens
+      const calculatedHeight = labels.length * 25;
+      const minHeight = Math.min(Math.max(550, calculatedHeight), 1000);
       ctx.style.height = minHeight + 'px';
       ctx.parentElement.style.minHeight = minHeight + 'px';
     } else {
