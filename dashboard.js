@@ -474,10 +474,7 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
       'Michigan': 'USA',
       'New Jersey': 'USA',
       'Pennsylvania': 'USA',
-      'West Virginia': 'USA',
-      // Special categories that should be grouped
-      'Social': 'Brazil',
-      'Sweeps': 'Brazil'
+      'West Virginia': 'USA'
     };
     
     // Group jurisdictions by country
