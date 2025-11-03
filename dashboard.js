@@ -697,19 +697,24 @@ let chartTypes = {
    * Get appropriate badge class for ticket status
    */
   function getStatusBadgeClass(status) {
-    // Log the status being processed
-    console.log('Processing status:', status, 'Type:', typeof status);
+    if (!status) return 'bg-secondary';
     
+    // Clean and normalize the status text
+    const cleanStatus = String(status).trim();
+    console.log('Processing status:', JSON.stringify(cleanStatus), 'Original:', JSON.stringify(status));
+    
+    // Case-insensitive status mapping
     const statusMap = {
-      'To Do': 'bg-secondary',           // Gray - not started
-      'In Progress': 'bg-primary',       // Blue - actively working
-      'Done': 'bg-success',              // Green - completed
-      'On Hold': 'bg-warning',           // Yellow - paused
-      'Cancelled': 'bg-danger'           // Red - cancelled
+      'to do': 'bg-secondary',
+      'in progress': 'bg-primary',
+      'done': 'bg-success',
+      'on hold': 'bg-warning',
+      'cancelled': 'bg-danger'
     };
     
-    const result = statusMap[status] || 'bg-secondary';
-    console.log('Status:', status, '-> Class:', result);
+    // Try exact match first, then case-insensitive match
+    const result = statusMap[cleanStatus.toLowerCase()] || 'bg-secondary';
+    console.log('Status:', JSON.stringify(cleanStatus), '-> Class:', result);
     return result;
   }
 
