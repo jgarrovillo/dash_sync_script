@@ -509,6 +509,7 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
     // Build labels and data arrays with hierarchical grouping
     const labels = [];
     const dataValues = [];
+    const colorMapping = []; // Track which country each label belongs to
     
     // Sort countries alphabetically
     const sortedCountries = Object.keys(groupedData).sort((a, b) => a.localeCompare(b));
@@ -521,16 +522,18 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
         // Country with no regions - show as-is
         labels.push(country);
         dataValues.push(countryData.total);
+        colorMapping.push({ country: country, isRegion: false, regionIndex: 0 });
       } else {
         // Country with regions - show all with visual hierarchy
         // Don't show country total, just the regions grouped under it
         
         // Sort regions alphabetically
         const sortedRegions = regions.sort((a, b) => a.localeCompare(b));
-        sortedRegions.forEach(region => {
+        sortedRegions.forEach((region, idx) => {
           // Show as "Country ├─ Region" for visual grouping
           labels.push(`${country} ├─ ${region}`);
           dataValues.push(countryData.regions[region]);
+          colorMapping.push({ country: country, isRegion: true, regionIndex: idx, totalRegions: sortedRegions.length });
         });
       }
     });
@@ -547,8 +550,8 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
       ctx.parentElement.style.minHeight = '550px';
     }
     
-    // Generate colors for each jurisdiction
-    const colors = generateColors(labels.length);
+    // Generate colors for each jurisdiction with grouped country colors
+    const colors = generateGroupedColors(colorMapping, sortedCountries);
     
     // Build chart configuration based on type
     const config = {
@@ -754,8 +757,57 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
   }
 
   /**
-  * Helper function to generate distinct colors for charts
-  */
+   * Helper function to generate grouped colors for jurisdiction chart
+   * Countries with regions get similar colors (same hue, varying lightness)
+   */
+  function generateGroupedColors(colorMapping, sortedCountries) {
+    const baseHues = [
+      210, // Blue
+      140, // Green
+      45,  // Orange/Yellow
+      280, // Purple
+      180, // Cyan
+      160, // Teal
+      30,  // Orange
+      0    // Red
+    ];
+    
+    // Assign a base hue to each country
+    const countryHues = {};
+    sortedCountries.forEach((country, idx) => {
+      if (idx < baseHues.length) {
+        countryHues[country] = baseHues[idx];
+      } else {
+        // Generate additional hues if needed
+        countryHues[country] = (idx * (360 / sortedCountries.length)) % 360;
+      }
+    });
+    
+    // Generate colors based on mapping
+    const colors = colorMapping.map(item => {
+      const baseHue = countryHues[item.country];
+      
+      if (!item.isRegion) {
+        // Standalone country - use base color
+        return `hsl(${baseHue}, 70%, 60%)`;
+      } else {
+        // Region of a country - vary the lightness to create similar but distinct colors
+        // Distribute lightness from 45% to 75% based on region index
+        const lightnessRange = 30; // Range from 45% to 75%
+        const lightnessStart = 45;
+        const lightnessStep = lightnessRange / Math.max(item.totalRegions, 1);
+        const lightness = lightnessStart + (item.regionIndex * lightnessStep);
+        
+        return `hsl(${baseHue}, 70%, ${lightness}%)`;
+      }
+    });
+    
+    return colors;
+  }
+
+  /**
+   * Helper function to generate distinct colors for charts
+   */
   function generateColors(count) {
     const baseColors = [
       CHART_COLORS.primary,
