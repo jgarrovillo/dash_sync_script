@@ -712,7 +712,10 @@ let chartTypes = {
     
     const html = pageTickets.map(function(ticket) {
       return `<tr>
-        <td><strong>${escapeHtml(ticket.issueKey)}</strong></td>
+        <td><a href="https://jira.evolution.com/browse/${escapeHtml(ticket.issueKey)}" target="_blank" class="text-decoration-none">
+          <strong>${escapeHtml(ticket.issueKey)}</strong>
+          <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.8em;"></i>
+        </a></td>
         <td>${escapeHtml(ticket.summary)}</td>
         <td><span class="badge bg-info">${escapeHtml(ticket.issueType)}</span></td>
         <td><span class="badge bg-success">${escapeHtml(ticket.status)}</span></td>
