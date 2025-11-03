@@ -779,7 +779,7 @@ let chartTypes = {
         <td><small>${escapeHtml(formattedDate)}</small></td>
         <td><small>${escapeHtml(ticket.environments || '')}</small></td>
         <td><small>${escapeHtml(cleanJurisdiction)}</small></td>
-        <td><span class="badge ${getStatusBadgeClass(ticket.status)}">${escapeHtml(ticket.status)}</span></td>
+        <td><span class="badge ${getStatusBadgeClass(ticket.status)}" style="min-width: 100px; display: inline-block;">${escapeHtml(ticket.status)}</span></td>
       </tr>`;
     }).join('');
     
