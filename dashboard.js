@@ -203,6 +203,10 @@ let chartTypes = {
       charts.periodChart.destroy();
     }
     
+    // Set canvas height to match other charts
+    ctx.style.height = '550px';
+    ctx.parentElement.style.minHeight = '550px';
+    
     const labels = ['Today', 'This Week', 'This Month', 'This Year', 'Previous Years'];
     const dataValues = [
       periodData?.today || 0,
