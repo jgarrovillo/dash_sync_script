@@ -693,6 +693,20 @@ let chartTypes = {
     updateTicketsTable();
   }
 
+  /**
+   * Get appropriate badge class for ticket status
+   */
+  function getStatusBadgeClass(status) {
+    const statusMap = {
+      'To Do': 'bg-secondary',           // Gray - not started
+      'In Progress': 'bg-primary',       // Blue - actively working
+      'Done': 'bg-success',              // Green - completed
+      'On Hold': 'bg-warning',           // Yellow - paused
+      'Cancelled': 'bg-danger'           // Red - cancelled
+    };
+    return statusMap[status] || 'bg-secondary';
+  }
+
   function updateTicketsTable() {
     const tbody = document.getElementById('ticketsTable');
     
@@ -717,7 +731,11 @@ let chartTypes = {
         'ISR - NLC Setup on ',
         'ISR - Evo OSS Setup on ',
         'ISR - NLC Setup ',
-        'ISR - Evo OSS Setup '
+        'ISR - Evo OSS Setup ',
+        'ICR - NLC Change on ',
+        'ICR - Evo OSS Change on ',
+        'ICR - NLC Change ',
+        'ICR - Evo OSS Change '
       ];
       for (const prefix of prefixesToRemove) {
         if (cleanSummary.startsWith(prefix)) {
@@ -761,7 +779,7 @@ let chartTypes = {
         <td><small>${escapeHtml(formattedDate)}</small></td>
         <td><small>${escapeHtml(ticket.environments || '')}</small></td>
         <td><small>${escapeHtml(cleanJurisdiction)}</small></td>
-        <td><span class="badge bg-success">${escapeHtml(ticket.status)}</span></td>
+        <td><span class="badge ${getStatusBadgeClass(ticket.status)}">${escapeHtml(ticket.status)}</span></td>
       </tr>`;
     }).join('');
     
