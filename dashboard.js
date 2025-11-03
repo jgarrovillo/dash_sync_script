@@ -710,67 +710,58 @@ let chartTypes = {
     const endIndex = startIndex + itemsPerPage;
     const pageTickets = sorted.slice(startIndex, endIndex);
     
-    // Function to format date to CET and make it readable
-    const formatDateToCET = (dateString) => {
-      if (!dateString) return '';
-      
-      try {
-        const date = new Date(dateString);
-        // Convert to CET (UTC+1 or UTC+2 depending on DST)
-        const cetDate = new Date(date.toLocaleString('en-US', { timeZone: 'Europe/Paris' }));
-        
-        // Format as "DD/MM/YYYY HH:MM"
-        return cetDate.toLocaleString('en-GB', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false
-        }).replace(',', '');
-      } catch (e) {
-        console.error('Error formatting date:', e);
-        return dateString;
-      }
-    };
-    
-    // Function to clean up summary text
-    const cleanSummary = (summary, template) => {
-      if (!summary) return '';
-      // Remove template prefix if it exists in the summary
-      if (template && summary.startsWith(template)) {
-        return summary.substring(template.length).trim();
-      }
-      return summary;
-    };
-    
     const html = pageTickets.map(function(ticket) {
-      const cleanEnv = ticket.environments?.split('(')[0].trim() || '';
-      const cleanJurisdiction = ticket.complianceJurisdiction?.split('(')[0].trim() || '';
-      const cleanSummaryText = cleanSummary(ticket.summary, ticket.template);
+      // Clean up summary by removing template prefixes
+      let cleanSummary = ticket.summary;
+      const prefixesToRemove = [
+        'ISR - NLC Setup on ',
+        'ISR - Evo OSS Setup on ',
+        'ISR - NLC Setup ',
+        'ISR - Evo OSS Setup '
+      ];
+      for (const prefix of prefixesToRemove) {
+        if (cleanSummary.startsWith(prefix)) {
+          cleanSummary = cleanSummary.substring(prefix.length);
+          break;
+        }
+      }
+      
+      // Format date to CET (UTC+1)
+      let formattedDate = '';
+      if (ticket.createdDate) {
+        try {
+          const date = new Date(ticket.createdDate);
+          // Convert to CET (UTC+1)
+          const cetDate = new Date(date.getTime() + (60 * 60 * 1000));
+          const year = cetDate.getUTCFullYear();
+          const month = String(cetDate.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(cetDate.getUTCDate()).padStart(2, '0');
+          const hours = String(cetDate.getUTCHours()).padStart(2, '0');
+          const minutes = String(cetDate.getUTCMinutes()).padStart(2, '0');
+          formattedDate = `${year}-${month}-${day} ${hours}:${minutes}`;
+        } catch (e) {
+          formattedDate = ticket.createdDate;
+        }
+      }
+      
+      // Clean up jurisdiction by removing BODATA references
+      let cleanJurisdiction = ticket.complianceJurisdiction || '';
+      if (cleanJurisdiction.includes('(BODATA-')) {
+        cleanJurisdiction = cleanJurisdiction.split('(')[0].trim();
+      }
       
       return `<tr>
-        <td>
-          <a href="https://jira.evolution.com/browse/${escapeHtml(ticket.issueKey)}" 
-             target="_blank" 
-             class="text-decoration-none"
-             title="${escapeHtml(cleanSummaryText)}">
-            <strong>${escapeHtml(ticket.issueKey)}</strong>
-            <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.8em;"></i>
-          </a>
-        </td>
+        <td><span class="badge bg-info">${escapeHtml(ticket.issueType)}</span></td>
+        <td><a href="https://jira.evolution.com/browse/${escapeHtml(ticket.issueKey)}" target="_blank" class="text-decoration-none">
+          <strong>${escapeHtml(ticket.issueKey)}</strong>
+          <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.8em;"></i>
+        </a></td>
         <td><small>${escapeHtml(ticket.template || '')}</small></td>
-        <td title="${escapeHtml(cleanSummaryText)}">
-          <div class="text-truncate" style="max-width: 300px;">
-            ${escapeHtml(cleanSummaryText)}
-          </div>
-        </td>
-        <td><small>${formatDateToCET(ticket.createdDate)}</small></td>
-        <td><small>${escapeHtml(cleanEnv)}</small></td>
+        <td>${escapeHtml(cleanSummary)}</td>
+        <td><small>${escapeHtml(formattedDate)}</small></td>
+        <td><small>${escapeHtml(ticket.environments || '')}</small></td>
         <td><small>${escapeHtml(cleanJurisdiction)}</small></td>
-        <td><span class="badge ${ticket.status === 'Done' || ticket.status === 'Closed' ? 'bg-success' : 'bg-info'}">
-          ${escapeHtml(ticket.status)}
-        </span></td>
+        <td><span class="badge bg-success">${escapeHtml(ticket.status)}</span></td>
       </tr>`;
     }).join('');
     
