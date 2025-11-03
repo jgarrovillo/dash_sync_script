@@ -150,6 +150,14 @@ let chartTypes = {
     if (data.tickets) {
       renderTicketsTable(data.tickets);
     }
+    
+    // Auto-sync delta after initial load (only if JIRA Bridge is available)
+    if (isBridgeAvailable()) {
+      console.log('🔄 Triggering auto-sync for new/updated tickets...');
+      setTimeout(() => {
+        syncData('delta', true); // Auto-sync without confirmation
+      }, 2000); // Wait 2 seconds after page load
+    }
   }
 
   // Chart color schemes
@@ -983,16 +991,25 @@ let chartTypes = {
   // Sync Data Function
   console.log('🔧 DEBUG: About to define syncData function...');
 
-  window.syncData = async function syncData(type) {
-    console.log(`🚀 [syncData] Starting sync with type: ${type}`);
+  window.syncData = async function syncData(type, autoSync = false) {
+    console.log(`🚀 [syncData] Starting sync with type: ${type}, autoSync: ${autoSync}`);
     console.log(`🚀 [syncData] Function called at: ${new Date().toISOString()}`);
     
     const isDebug = type === 'debug';
-    const syncMsg = isDebug 
-      ? 'Test sync with 10 most recent issues?\n\nThis will fetch a small dataset for testing purposes.'
-      : `Sync ${type === 'all' ? 'all' : 'new/updated'} tickets from JIRA?\n\nThis will fetch ALL data directly from JIRA using your current browser session.\n\nNote: This may take a few minutes for large datasets (3000+ issues).`;
+    const isDelta = type === 'delta';
     
-    if (!confirm(syncMsg)) {
+    // Build appropriate confirmation message
+    let syncMsg;
+    if (isDebug) {
+      syncMsg = 'Test sync with 10 most recent issues?\n\nThis will fetch a small dataset for testing purposes.';
+    } else if (isDelta) {
+      syncMsg = 'Sync new/updated tickets from JIRA?\n\nThis will only fetch tickets created or updated in the last 7 days.';
+    } else {
+      syncMsg = 'Sync ALL tickets from JIRA?\n\nThis will fetch ALL data directly from JIRA.\n\nNote: This may take a few minutes for large datasets (3000+ issues).';
+    }
+    
+    // Skip confirmation for auto-sync
+    if (!autoSync && !confirm(syncMsg)) {
       console.log('Sync cancelled by user');
       return;
     }
@@ -1004,7 +1021,9 @@ let chartTypes = {
       
       if (!isBridgeAvailable()) {
         hideLoading();
-        showAlert('danger', 'JIRA Bridge extension not detected. Please install the extension and refresh.');
+        if (!autoSync) {
+          showAlert('danger', 'JIRA Bridge extension not detected. Please install the extension and refresh.');
+        }
         return;
       }
       
@@ -1039,8 +1058,16 @@ let chartTypes = {
         console.warn('⚠️ Could not fetch field metadata:', error);
       }
 
-      // Build JQL query
-      let jql = `project = ${JIRA_CONFIG.projectKey} ORDER BY created DESC`;
+      // Build JQL query based on sync type
+      let jql;
+      if (isDelta) {
+        // Only fetch tickets created or updated in the last 7 days
+        jql = `project = ${JIRA_CONFIG.projectKey} AND (created >= -7d OR updated >= -7d) ORDER BY updated DESC`;
+        console.log('📋 Delta sync: Fetching tickets from last 7 days');
+      } else {
+        jql = `project = ${JIRA_CONFIG.projectKey} ORDER BY created DESC`;
+        console.log('📋 Full sync: Fetching all tickets');
+      }
 
       console.log(`📋 JQL Query: ${jql}`);
       console.log(`🌐 Fetching from: https://${JIRA_CONFIG.domain}/rest/api/2/search`);
