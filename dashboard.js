@@ -650,11 +650,56 @@ let chartTypes = {
     filteredTickets = tickets;
     currentPage = 1;
     
+    // Populate filter dropdowns dynamically
+    populateFilterDropdowns(tickets);
+    
     // Set up search and filter handlers
     setupTableFilters();
     
+    // Set up column resizing
+    setupColumnResizing();
+    
     // Initial render
     updateTicketsTable();
+  }
+
+  /**
+   * Populate filter dropdowns with unique values from data
+   */
+  function populateFilterDropdowns(tickets) {
+    // Get unique values for each filter
+    const types = [...new Set(tickets.map(t => t.issueType).filter(Boolean))].sort();
+    const statuses = [...new Set(tickets.map(t => t.status).filter(Boolean))].sort();
+    const environments = [...new Set(tickets.map(t => t.environments).filter(Boolean))].sort();
+    const templates = [...new Set(tickets.map(t => t.template).filter(Boolean))].sort();
+    
+    // Populate Type filter
+    const typeSelect = document.getElementById('filterType');
+    if (typeSelect) {
+      typeSelect.innerHTML = '<option value="">All Types</option>' + 
+        types.map(type => `<option value="${escapeHtml(type)}">${escapeHtml(type)}</option>`).join('');
+    }
+    
+    // Populate Status filter
+    const statusSelect = document.getElementById('filterStatus');
+    if (statusSelect) {
+      statusSelect.innerHTML = '<option value="">All Statuses</option>' + 
+        statuses.map(status => `<option value="${escapeHtml(status)}">${escapeHtml(status)}</option>`).join('');
+    }
+    
+    // Populate Environment filter
+    const envSelect = document.getElementById('filterEnvironment');
+    if (envSelect) {
+      envSelect.innerHTML = '<option value="">All Environments</option>' + 
+        environments.map(env => `<option value="${escapeHtml(env)}">${escapeHtml(env)}</option>`).join('');
+    }
+    
+    // Populate Template filter
+    const templateSelect = document.getElementById('filterTemplate');
+    if (templateSelect) {
+      templateSelect.innerHTML = '<option value="">All Templates</option>' + 
+        templates.map(template => `<option value="${escapeHtml(template)}">${escapeHtml(template)}</option>`).join('');
+    }
   }
 
   function setupTableFilters() {
@@ -674,6 +719,8 @@ let chartTypes = {
     const searchTerm = document.getElementById('ticketSearch')?.value.toLowerCase() || '';
     const typeFilter = document.getElementById('filterType')?.value || '';
     const statusFilter = document.getElementById('filterStatus')?.value || '';
+    const environmentFilter = document.getElementById('filterEnvironment')?.value || '';
+    const templateFilter = document.getElementById('filterTemplate')?.value || '';
     
     filteredTickets = allTickets.filter(ticket => {
       const matchesSearch = !searchTerm || 
@@ -685,12 +732,59 @@ let chartTypes = {
       
       const matchesType = !typeFilter || ticket.issueType === typeFilter;
       const matchesStatus = !statusFilter || ticket.status === statusFilter;
+      const matchesEnvironment = !environmentFilter || ticket.environments === environmentFilter;
+      const matchesTemplate = !templateFilter || ticket.template === templateFilter;
       
-      return matchesSearch && matchesType && matchesStatus;
+      return matchesSearch && matchesType && matchesStatus && matchesEnvironment && matchesTemplate;
     });
     
     currentPage = 1;
     updateTicketsTable();
+  }
+
+  /**
+   * Setup column resizing functionality
+   */
+  function setupColumnResizing() {
+    const table = document.querySelector('.table');
+    if (!table) return;
+    
+    const headers = table.querySelectorAll('th');
+    
+    headers.forEach((header, index) => {
+      // Add resizer element
+      const resizer = document.createElement('div');
+      resizer.className = 'resizer';
+      header.appendChild(resizer);
+      
+      let startX, startWidth;
+      
+      resizer.addEventListener('mousedown', function(e) {
+        startX = e.pageX;
+        startWidth = header.offsetWidth;
+        header.classList.add('resizing');
+        
+        document.addEventListener('mousemove', resize);
+        document.addEventListener('mouseup', stopResize);
+        
+        e.preventDefault();
+      });
+      
+      function resize(e) {
+        const width = startWidth + (e.pageX - startX);
+        if (width > 50) { // Minimum width
+          header.style.width = width + 'px';
+          header.style.minWidth = width + 'px';
+          header.style.maxWidth = width + 'px';
+        }
+      }
+      
+      function stopResize() {
+        header.classList.remove('resizing');
+        document.removeEventListener('mousemove', resize);
+        document.removeEventListener('mouseup', stopResize);
+      }
+    });
   }
 
   /**
