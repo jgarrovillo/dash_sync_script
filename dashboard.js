@@ -432,33 +432,76 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
       return;
     }
     
+    // Mapping of regions to their parent countries
+    const regionToCountry = {
+      // Argentina
+      'Buenos Aires City': 'Argentina',
+      'Buenos Aires Province': 'Argentina',
+      'Catamarca': 'Argentina',
+      'Chubut': 'Argentina',
+      'Cordoba': 'Argentina',
+      'Jujuy': 'Argentina',
+      'La Rioja': 'Argentina',
+      'Mendoza': 'Argentina',
+      'Misiones': 'Argentina',
+      'Neuquén': 'Argentina',
+      'Salta': 'Argentina',
+      'Tucumán': 'Argentina',
+      // Bosnia and Herzegovina
+      'Republika Srpska': 'Bosnia and Herzegovina',
+      // Brazil
+      'Brazil Federal': 'Brazil',
+      'Paraiba': 'Brazil',
+      'Parana': 'Brazil',
+      'Passive Prognosis': 'Brazil',
+      'Fixed Odds': 'Brazil',
+      'Rio de Janeiro': 'Brazil',
+      // Canada
+      'Alberta': 'Canada',
+      'Ontario': 'Canada',
+      // Comoros
+      'Anjouan': 'Comoros',
+      // Guernsey
+      'Alderney': 'Guernsey',
+      // South Africa
+      'Mpumalanga': 'South Africa',
+      'Northern Cape': 'South Africa',
+      'Western Cape': 'South Africa',
+      // USA
+      'Arkansas': 'USA',
+      'Connecticut': 'USA',
+      'Delaware': 'USA',
+      'Michigan': 'USA',
+      'New Jersey': 'USA',
+      'Pennsylvania': 'USA',
+      'West Virginia': 'USA',
+      // Special categories that should be grouped
+      'Social': 'Brazil',
+      'Sweeps': 'Brazil'
+    };
+    
     // Group jurisdictions by country
     const groupedData = {};
     
-    console.log('🔍 Raw jurisdiction data:', jurData);
-    
     Object.entries(jurData).forEach(([rawLabel, count]) => {
-      // Remove BODATA reference
-      const cleanLabel = rawLabel.includes('(BODATA-') 
+      // Remove BODATA reference and (A) suffix
+      let cleanLabel = rawLabel.includes('(BODATA-') 
         ? rawLabel.split('(')[0].trim() 
         : rawLabel;
+      cleanLabel = cleanLabel.replace(/\s*\(A\)\s*$/, '').trim();
       
-      console.log('Processing jurisdiction:', rawLabel, '→', cleanLabel, 'Has comma:', cleanLabel.includes(','));
+      // Check if this is a known region
+      const parentCountry = regionToCountry[cleanLabel];
       
-      // Check if label contains a comma (country, state/province format)
-      if (cleanLabel.includes(',')) {
-        const parts = cleanLabel.split(',').map(p => p.trim());
-        const country = parts[0];
-        const region = parts.slice(1).join(', '); // Handle cases with multiple commas
-        
-        // Group by country
-        if (!groupedData[country]) {
-          groupedData[country] = { total: 0, regions: {} };
+      if (parentCountry) {
+        // This is a region - group under its country
+        if (!groupedData[parentCountry]) {
+          groupedData[parentCountry] = { total: 0, regions: {} };
         }
-        groupedData[country].total += count;
-        groupedData[country].regions[region] = (groupedData[country].regions[region] || 0) + count;
+        groupedData[parentCountry].total += count;
+        groupedData[parentCountry].regions[cleanLabel] = (groupedData[parentCountry].regions[cleanLabel] || 0) + count;
       } else {
-        // No comma, treat as standalone country
+        // This is a standalone country
         if (!groupedData[cleanLabel]) {
           groupedData[cleanLabel] = { total: 0, regions: {} };
         }
