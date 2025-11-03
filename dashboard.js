@@ -435,11 +435,15 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
     // Group jurisdictions by country
     const groupedData = {};
     
+    console.log('🔍 Raw jurisdiction data:', jurData);
+    
     Object.entries(jurData).forEach(([rawLabel, count]) => {
       // Remove BODATA reference
       const cleanLabel = rawLabel.includes('(BODATA-') 
         ? rawLabel.split('(')[0].trim() 
         : rawLabel;
+      
+      console.log('Processing jurisdiction:', rawLabel, '→', cleanLabel, 'Has comma:', cleanLabel.includes(','));
       
       // Check if label contains a comma (country, state/province format)
       if (cleanLabel.includes(',')) {
