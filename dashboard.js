@@ -697,25 +697,21 @@ let chartTypes = {
    * Get appropriate badge class for ticket status
    */
   function getStatusBadgeClass(status) {
-    if (!status) return 'bg-secondary';
+    if (!status) return 'status-to-do';
     
     // Clean and normalize the status text
-    const cleanStatus = String(status).trim();
-    console.log('Processing status:', JSON.stringify(cleanStatus), 'Original:', JSON.stringify(status));
+    const cleanStatus = String(status).trim().toLowerCase();
     
-    // Case-insensitive status mapping
+    // Map status to CSS class names (defined in index.html)
     const statusMap = {
-      'to do': 'bg-secondary',
-      'in progress': 'bg-primary',
-      'done': 'bg-success',
-      'on hold': 'bg-warning',
-      'cancelled': 'bg-danger'
+      'to do': 'status-to-do',
+      'in progress': 'status-in-progress',
+      'done': 'status-done',
+      'on hold': 'status-on-hold',
+      'cancelled': 'status-cancelled'
     };
     
-    // Try exact match first, then case-insensitive match
-    const result = statusMap[cleanStatus.toLowerCase()] || 'bg-secondary';
-    console.log('Status:', JSON.stringify(cleanStatus), '-> Class:', result);
-    return result;
+    return statusMap[cleanStatus] || 'status-to-do';
   }
 
   function updateTicketsTable() {
@@ -790,7 +786,7 @@ let chartTypes = {
         <td><small>${escapeHtml(formattedDate)}</small></td>
         <td><small>${escapeHtml(ticket.environments || '')}</small></td>
         <td><small>${escapeHtml(cleanJurisdiction)}</small></td>
-        <td><span class="badge ${getStatusBadgeClass(ticket.status.trim())}" style="min-width: 100px; display: inline-block;">${escapeHtml(ticket.status)}</span></td>
+        <td><span class="badge ${getStatusBadgeClass(ticket.status)}" style="min-width: 100px; display: inline-block;">${escapeHtml(ticket.status)}</span></td>
       </tr>`;
     }).join('');
     
