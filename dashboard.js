@@ -697,21 +697,20 @@ let chartTypes = {
    * Get appropriate badge class for ticket status
    */
   function getStatusBadgeClass(status) {
-    if (!status) return 'status-to-do';
+    // Log the status being processed
+    console.log('Processing status:', status, 'Type:', typeof status);
     
-    // Clean and normalize the status text
-    const cleanStatus = String(status).trim().toLowerCase();
-    
-    // Map status to CSS class names (defined in index.html)
     const statusMap = {
-      'to do': 'status-to-do',
-      'in progress': 'status-in-progress',
-      'done': 'status-done',
-      'on hold': 'status-on-hold',
-      'cancelled': 'status-cancelled'
+      'To Do': 'bg-secondary',           // Gray - not started
+      'In Progress': 'bg-primary',       // Blue - actively working
+      'Done': 'bg-success',              // Green - completed
+      'On Hold': 'bg-warning',           // Yellow - paused
+      'Cancelled': 'bg-danger'           // Red - cancelled
     };
     
-    return statusMap[cleanStatus] || 'status-to-do';
+    const result = statusMap[status] || 'bg-secondary';
+    console.log('Status:', status, '-> Class:', result);
+    return result;
   }
 
   function updateTicketsTable() {
@@ -786,7 +785,7 @@ let chartTypes = {
         <td><small>${escapeHtml(formattedDate)}</small></td>
         <td><small>${escapeHtml(ticket.environments || '')}</small></td>
         <td><small>${escapeHtml(cleanJurisdiction)}</small></td>
-        <td><span class="badge ${getStatusBadgeClass(ticket.status)}" style="min-width: 100px; display: inline-block;">${escapeHtml(ticket.status)}</span></td>
+        <td><span class="badge ${getStatusBadgeClass(ticket.status.trim())}" style="min-width: 100px; display: inline-block;">${escapeHtml(ticket.status)}</span></td>
       </tr>`;
     }).join('');
     
