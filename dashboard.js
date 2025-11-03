@@ -305,6 +305,16 @@ let chartTypes = {
     const labels = Object.keys(envData);
     const dataValues = Object.values(envData);
     
+    // Adjust canvas height for bar charts with many items
+    if (chartType === 'bar' && labels.length > 10) {
+      const minHeight = Math.max(350, labels.length * 30);
+      ctx.style.height = minHeight + 'px';
+      ctx.parentElement.style.minHeight = minHeight + 'px';
+    } else {
+      ctx.style.height = '350px';
+      ctx.parentElement.style.minHeight = '350px';
+    }
+    
     // Generate colors for each environment
     const colors = generateColors(labels.length);
     
@@ -422,6 +432,16 @@ let chartTypes = {
     });
     const dataValues = Object.values(jurData);
     
+    // Adjust canvas height for bar charts with many items
+    if (chartType === 'bar' && labels.length > 10) {
+      const minHeight = Math.max(350, labels.length * 30);
+      ctx.style.height = minHeight + 'px';
+      ctx.parentElement.style.minHeight = minHeight + 'px';
+    } else {
+      ctx.style.height = '350px';
+      ctx.parentElement.style.minHeight = '350px';
+    }
+    
     // Generate colors for each jurisdiction
     const colors = generateColors(labels.length);
     
@@ -531,6 +551,16 @@ let chartTypes = {
     
     const labels = Object.keys(templateData);
     const dataValues = Object.values(templateData);
+    
+    // Adjust canvas height for bar charts with many items
+    if (chartType === 'bar' && labels.length > 10) {
+      const minHeight = Math.max(350, labels.length * 30);
+      ctx.style.height = minHeight + 'px';
+      ctx.parentElement.style.minHeight = minHeight + 'px';
+    } else {
+      ctx.style.height = '350px';
+      ctx.parentElement.style.minHeight = '350px';
+    }
     
     // Use specific colors for templates
     const colors = [
