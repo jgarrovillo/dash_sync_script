@@ -17,6 +17,7 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
     projectKey: 'NLCINT'
   };
 
+
   // Check if DOM is already loaded
   if (document.readyState === 'loading') {
     console.log('🚀 SCRIPT: DOM is still loading, waiting for DOMContentLoaded');
