@@ -17,7 +17,6 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
     projectKey: 'NLCINT'
   };
 
-
   // Check if DOM is already loaded
   if (document.readyState === 'loading') {
     console.log('🚀 SCRIPT: DOM is still loading, waiting for DOMContentLoaded');
@@ -143,7 +142,8 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
     
     // Render charts and tables
     if (data.summary) {
-      renderPeriodChart(data.summary.byPeriod);
+      renderRecentPeriodChart(data.summary.byPeriod);
+      renderYearlyChart(data.summary.byPeriod);
       renderEnvironmentChart(data.summary.byEnvironment, chartTypes.environment);
       renderJurisdictionChart(data.summary.byJurisdiction, chartTypes.jurisdiction);
       renderTemplateChart(data.summary.byTemplate, chartTypes.template);
@@ -189,45 +189,125 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
   };
 
   /**
-  * Chart 1: Period Bar Chart
-  * Shows tickets created by time period (Today, This Week, This Month, This Year, Previous Years)
+  * Chart 1a: Recent Period Bar Chart
+  * Shows tickets created in recent periods (Today, This Week, This Month)
   */
-  function renderPeriodChart(periodData) {
-    console.log('Rendering period chart:', periodData);
+  function renderRecentPeriodChart(periodData) {
+    console.log('Rendering recent period chart:', periodData);
     
-    const ctx = document.getElementById('periodChart');
+    const ctx = document.getElementById('recentPeriodChart');
     if (!ctx) {
-      console.error('Period chart canvas not found');
+      console.error('Recent period chart canvas not found');
       return;
     }
     
     // Destroy existing chart if it exists
-    if (charts.periodChart) {
-      charts.periodChart.destroy();
+    if (charts.recentPeriodChart) {
+      charts.recentPeriodChart.destroy();
     }
     
-    // Set canvas height to match other charts
-    ctx.style.height = '550px';
-    ctx.parentElement.style.minHeight = '550px';
+    // Set canvas height
+    ctx.style.height = '350px';
+    ctx.parentElement.style.minHeight = '350px';
     
-    const labels = ['Today', 'This Week', 'This Month', 'This Year', 'Previous Years'];
+    const labels = ['Today', 'This Week', 'This Month'];
     const dataValues = [
       periodData?.today || 0,
       periodData?.thisWeek || 0,
-      periodData?.thisMonth || 0,
-      periodData?.thisYear || 0,
-      periodData?.previousYears || 0
+      periodData?.thisMonth || 0
     ];
     
     const backgroundColors = [
       CHART_COLORS.success,
       CHART_COLORS.warning,
-      CHART_COLORS.purple,
+      CHART_COLORS.purple
+    ];
+    
+    charts.recentPeriodChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Tickets Created',
+          data: dataValues,
+          backgroundColor: backgroundColors,
+          borderColor: backgroundColors.map(c => c),
+          borderWidth: 1
+        }]
+      },
+      options: {
+        ...CHART_DEFAULTS,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#7d8590',
+              stepSize: 1
+            },
+            grid: {
+              color: '#30363d'
+            }
+          },
+          x: {
+            ticks: {
+              color: '#7d8590'
+            },
+            grid: {
+              color: '#30363d'
+            }
+          }
+        },
+        plugins: {
+          ...CHART_DEFAULTS.plugins,
+          legend: {
+            display: false
+          },
+          tooltip: {
+            backgroundColor: '#161b22',
+            titleColor: '#e6edf3',
+            bodyColor: '#e6edf3',
+            borderColor: '#30363d',
+            borderWidth: 1
+          }
+        }
+      }
+    });
+  }
+
+  /**
+  * Chart 1b: Yearly Bar Chart
+  * Shows tickets created by year (This Year, Previous Years)
+  */
+  function renderYearlyChart(periodData) {
+    console.log('Rendering yearly chart:', periodData);
+    
+    const ctx = document.getElementById('yearlyChart');
+    if (!ctx) {
+      console.error('Yearly chart canvas not found');
+      return;
+    }
+    
+    // Destroy existing chart if it exists
+    if (charts.yearlyChart) {
+      charts.yearlyChart.destroy();
+    }
+    
+    // Set canvas height
+    ctx.style.height = '350px';
+    ctx.parentElement.style.minHeight = '350px';
+    
+    const labels = ['This Year', 'Previous Years'];
+    const dataValues = [
+      periodData?.thisYear || 0,
+      periodData?.previousYears || 0
+    ];
+    
+    const backgroundColors = [
       CHART_COLORS.primary,
       CHART_COLORS.info
     ];
     
-    charts.periodChart = new Chart(ctx, {
+    charts.yearlyChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: labels,
