@@ -1346,7 +1346,7 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
       // Fetch ALL issues with pagination
       let allIssues = [];
       let startAt = 0;
-      const maxResults = isDebug ? 10 : 100; // Fetch in batches of 100
+      const maxResults = isDebug ? 10 : 250; // Fetch in batches of 100
       let totalIssues = 0;
       
       do {
@@ -1418,7 +1418,7 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
       showAlert('info', `Processing ${allIssues.length} issues in batches...`);
       
       // Send to backend in batches to avoid payload size limits
-      const BATCH_SIZE = 100; // Process 100 issues at a time
+      const BATCH_SIZE = 250; // Process 100 issues at a time
       const totalBatches = Math.ceil(allIssues.length / BATCH_SIZE);
       let processedBatches = 0;
       let totalInserted = 0;
