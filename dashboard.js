@@ -276,7 +276,7 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
 
   /**
   * Chart 1b: Yearly Bar Chart
-  * Shows tickets created by year (This Year, Previous Years)
+  * Shows tickets created by month (this year) and by year (previous years)
   */
   function renderYearlyChart(periodData) {
     console.log('Rendering yearly chart:', periodData);
@@ -296,16 +296,41 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
     ctx.style.height = '350px';
     ctx.parentElement.style.minHeight = '350px';
     
-    const labels = ['This Year', 'Previous Years'];
-    const dataValues = [
-      periodData?.thisYear || 0,
-      periodData?.previousYears || 0
-    ];
+    // Build labels and data from detailed breakdown
+    const labels = [];
+    const dataValues = [];
+    const backgroundColors = [];
     
-    const backgroundColors = [
-      CHART_COLORS.primary,
-      CHART_COLORS.info
-    ];
+    const currentYear = new Date().getFullYear();
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // Add this year's months
+    if (periodData?.byMonth) {
+      for (let month = 0; month < 12; month++) {
+        labels.push(`${monthNames[month]} ${currentYear}`);
+        dataValues.push(periodData.byMonth[month] || 0);
+        backgroundColors.push(CHART_COLORS.primary);
+      }
+    }
+    
+    // Add previous years
+    if (periodData?.byYear) {
+      const years = Object.keys(periodData.byYear).sort((a, b) => b - a); // Sort descending
+      years.forEach(year => {
+        if (parseInt(year) < currentYear) {
+          labels.push(year);
+          dataValues.push(periodData.byYear[year]);
+          backgroundColors.push(CHART_COLORS.info);
+        }
+      });
+    }
+    
+    // Fallback to old format if new format not available
+    if (labels.length === 0) {
+      labels.push('This Year', 'Previous Years');
+      dataValues.push(periodData?.thisYear || 0, periodData?.previousYears || 0);
+      backgroundColors.push(CHART_COLORS.primary, CHART_COLORS.info);
+    }
     
     charts.yearlyChart = new Chart(ctx, {
       type: 'bar',
@@ -334,7 +359,9 @@ let hasAutoSynced = false; // Flag to prevent auto-sync loop
           },
           x: {
             ticks: {
-              color: '#7d8590'
+              color: '#7d8590',
+              maxRotation: 45,
+              minRotation: 45
             },
             grid: {
               color: '#30363d'
